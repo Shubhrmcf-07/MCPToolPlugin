@@ -40,6 +40,16 @@ jobs:
     - name: Pack NuGet packages
       run: dotnet pack --configuration Release --no-build --output ./packages
 
+    - name: Push to Private NuGet Feed
+      run: |
+        for package in ./packages/*.nupkg; do
+          echo "Pushing $package to private feed..."
+          dotnet nuget push "$package" \
+            --source ${{ secrets.NUGET_FEED_URL }} \
+            --api-key ${{ secrets.NUGET_FEED_PAT }} \
+            --skip-duplicate
+        done
+
     - name: Upload packages as artifacts
       uses: actions/upload-artifact@v4
       with:
@@ -57,7 +67,7 @@ jobs:
           **Tools:**
           ${{ steps.find-tools.outputs.tools }}
           
-          **Packages:** Available in artifacts (see Actions tab)
+          **Packages:** Published to private NuGet feed
         files: ./packages/*.nupkg
         draft: false
         prerelease: false
@@ -66,13 +76,11 @@ jobs:
 
     - name: Publish Summary
       run: |
-        echo "## ✓ Tools Packed Successfully"
+        echo "## ✓ Tools Published Successfully"
         echo ""
         echo "**Version:** ${{ github.event.inputs.version }}"
         echo "**Tools:** ${{ steps.find-tools.outputs.tools }}"
         echo ""
-        echo "**Next Steps:**"
-        echo "1. Download packages from GitHub Release"
-        echo "2. Publish to Azure Artifacts (manual step)"
-        echo "3. Notify MCP Server to pull new tools"
+        echo "**Published to:** Private NuGet Feed"
+        echo "**GitHub Release:** Created with artifacts"
 
