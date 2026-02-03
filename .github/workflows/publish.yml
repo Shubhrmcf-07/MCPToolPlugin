@@ -40,13 +40,21 @@ jobs:
     - name: Pack NuGet packages
       run: dotnet pack --configuration Release --no-build --output ./packages
 
+    - name: Configure NuGet Source
+      run: |
+        dotnet nuget add source ${{ secrets.NUGET_FEED_URL }} \
+          --name PrivateFeed \
+          --username az \
+          --password ${{ secrets.NUGET_FEED_PAT }} \
+          --store-password-in-clear-text
+
     - name: Push to Private NuGet Feed
       run: |
         for package in ./packages/*.nupkg; do
           echo "Pushing $package to private feed..."
           dotnet nuget push "$package" \
-            --source ${{ secrets.NUGET_FEED_URL }} \
-            --api-key ${{ secrets.NUGET_FEED_PAT }} \
+            --source PrivateFeed \
+            --api-key az \
             --skip-duplicate
         done
 
