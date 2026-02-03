@@ -14,7 +14,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../MCPServer.ToolTemplate/MCPServer.ToolTemplate.csproj" />
+    <ProjectReference Include="../../MCPServer.ToolTemplate/MCPServer.ToolTemplate.csproj" />
   </ItemGroup>
 
 </Project>
