@@ -29,14 +29,40 @@ dotnet add package Serilog
 dotnet add package Serilog.Sinks.File
 ```
 
-### 2. Add Published Tools
+### 2. Configure Custom NuGet Feed
+
+Add your custom feed to your local NuGet config:
 
 ```bash
-dotnet add package MCPServer.Examples
-dotnet add package MCPServer.YourToolName  # Any published tools
+dotnet nuget add source \
+  --name YourCustomFeed \
+  --username your-username \
+  --password your-password \
+  https://your-nuget-server.com/v3/index.json
 ```
 
-### 3. Implement Tool Loading
+Or edit `~/.nuget/NuGet/NuGet.Config`:
+
+```xml
+<configuration>
+  <packageSources>
+    <add key="YourCustomFeed" value="https://your-nuget-server.com/v3/index.json" />
+  </packageSources>
+  <packageSourceCredentials>
+    <YourCustomFeed>
+      <add key="Username" value="your-username" />
+      <add key="ClearTextPassword" value="your-password" />
+    </YourCustomFeed>
+  </packageSourceCredentials>
+</configuration>
+```
+
+### 3. Add Published Tools
+
+```bash
+dotnet add package MCPServer.Examples --source YourCustomFeed
+dotnet add package MCPServer.YourToolName --source YourCustomFeed
+```
 
 Your `Program.cs` should:
 
@@ -116,7 +142,45 @@ No code changes needed in your server - just add the NuGet package!
 - Update via: `dotnet package update MCPServer.ToolName`
 - Pin specific version if needed
 
-## Next Steps
+## GitHub Actions Setup
+
+### Configure Publishing Secrets
+
+In your GitHub repository, add these secrets (Settings → Secrets → Actions):
+
+| Secret | Value | Example |
+|--------|-------|---------|
+| `NUGET_FEED_URL` | Your custom feed URL | `https://pkgs.dev.azure.com/org/_packaging/MCP/nuget/v3/index.json` |
+| `NUGET_FEED_USERNAME` | Feed username or PAT | `user@domain.com` |
+| `NUGET_FEED_PASSWORD` | Feed password or PAT token | `*** (your token)` |
+| `NUGET_FEED_API_KEY` | Feed API key | `oy2...` (if required) |
+
+### Custom Feed Options
+
+**Azure Artifacts** (Recommended for Azure users)
+```
+URL: https://pkgs.dev.azure.com/{org}/_packaging/{feed}/nuget/v3/index.json
+Auth: Personal Access Token (PAT)
+```
+
+**GitHub Packages**
+```
+URL: https://nuget.pkg.github.com/{owner}/index.json
+Auth: GitHub token
+```
+
+**On-Premises (ProGet, Artifactory, etc.)**
+```
+URL: https://your-server.com/nuget/v3/index.json
+Auth: API key or credentials
+```
+
+**Private MyGet Feed**
+```
+URL: https://www.myget.org/F/{feed}/auth/{apikey}/api/v3/index.json
+```
+
+## Troubleshooting
 
 1. Create private Git repository for MCPServer.Core
 2. Implement ToolManager (tool registry & execution)

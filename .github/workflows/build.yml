@@ -55,11 +55,20 @@ jobs:
         name: nuget-packages
         path: ./packages
     
-    - name: Publish to NuGet
+    - name: Configure custom NuGet feed
+      run: |
+        dotnet nuget add source \
+          --name CustomFeed \
+          --username ${{ secrets.NUGET_FEED_USERNAME }} \
+          --password ${{ secrets.NUGET_FEED_PASSWORD }} \
+          --store-password-in-clear-text \
+          ${{ secrets.NUGET_FEED_URL }}
+    
+    - name: Publish to custom feed
       run: |
         dotnet nuget push "./packages/*.nupkg" \
-          --api-key ${{ secrets.NUGET_API_KEY }} \
-          --source https://api.nuget.org/v3/index.json \
+          --api-key ${{ secrets.NUGET_FEED_API_KEY }} \
+          --source CustomFeed \
           --skip-duplicate || true
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
       run: |

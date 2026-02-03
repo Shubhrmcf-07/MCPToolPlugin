@@ -40,7 +40,7 @@ public class MyTool : IMCPTool {
 3. **Follow** the [TOOL_TEMPLATE.md](docs/TOOL_TEMPLATE.md) guide
 4. **Submit** a PR with your tool
 5. **CI validates** the tool (builds, tests, structure)
-6. **Merge** -> Tool published to NuGet
+6. **Merge** → Tool published to your custom feed
 7. **MCP servers** install your tool via NuGet
 
 ## Example: TextProcessingTool
@@ -62,13 +62,15 @@ Located in `src/MCPServer.Examples/`, implements:
 
 1. **Build & Test** - GitHub Actions validates all PRs
 2. **Auto-Pack** - NuGet packages created automatically
-3. **Publish** - Tools published to NuGet.org on merge
-4. **Distribution** - MCP servers pull tools from NuGet
+3. **Publish** - Tools published to custom feed on merge
+4. **Distribution** - MCP servers pull tools from custom feed
 
 Example: Your tool becomes available as:
 ```bash
 dotnet add package MCPServer.YourToolName
 ```
+
+Configure your feed: [CUSTOM-FEED.md](docs/CUSTOM-FEED.md)
 
 ## Get Tool Details
 ```bash
