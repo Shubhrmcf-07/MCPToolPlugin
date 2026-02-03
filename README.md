@@ -60,17 +60,14 @@ Located in `src/MCPServer.Examples/`, implements:
 
 ## How Tools Get Published
 
-1. **Build & Test** - GitHub Actions validates all PRs
-2. **Auto-Pack** - NuGet packages created automatically
-3. **Publish** - Tools published to custom feed on merge
-4. **Distribution** - MCP servers pull tools from custom feed
+1. **Build & Test** - GitHub Actions validates all PRs (public)
+2. **Auto-Pack** - NuGet packages created and uploaded as artifacts
+3. **Download locally** - Get packages from GitHub Actions
+4. **Publish privately** - Push to your custom feed with credentials (locally)
 
-Example: Your tool becomes available as:
-```bash
-dotnet add package MCPServer.YourToolName
-```
+All credentials stay **private**. Never stored in GitHub.
 
-Configure your feed: [CUSTOM-FEED.md](docs/CUSTOM-FEED.md)
+See [PUBLISH-LOCALLY.md](docs/PUBLISH-LOCALLY.md) for publishing steps.
 
 ## Get Tool Details
 ```bash

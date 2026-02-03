@@ -100,13 +100,14 @@ dotnet publish -c Release
 
 ## Workflow: Adding New Tools
 
-1. **Community contributes tool** → Submits PR to public repo
-2. **CI validates tool** → Runs tests and checks
-3. **Tool published to NuGet** → On merge to main
-4. **Update private server** → `dotnet add package MCPServer.NewTool`
-5. **Redeploy** → Server now offers new tool
+1. **Community contributes tool** → Submits PR to public GitHub repo
+2. **CI validates** → GitHub Actions builds and tests
+3. **Merge approved** → Tool merged to main
+4. **You download** → Get packages from GitHub Actions artifacts
+5. **Publish locally** → Push to your private feed with credentials
+6. **Your server** → Installs package from your feed
 
-No code changes needed in your server - just add the NuGet package!
+No code changes needed - just add the NuGet package!
 
 ## Benefits
 
@@ -144,41 +145,16 @@ No code changes needed in your server - just add the NuGet package!
 
 ## GitHub Actions Setup
 
-### Configure Publishing Secrets
+**GitHub has NO credentials or secrets stored.**
 
-In your GitHub repository, add these secrets (Settings → Secrets → Actions):
+Workflow:
+1. Tool PR merged to GitHub
+2. GitHub Actions builds and tests
+3. Packages uploaded as artifacts
+4. You download packages
+5. You publish locally to your feed with credentials
 
-| Secret | Value | Example |
-|--------|-------|---------|
-| `NUGET_FEED_URL` | Your custom feed URL | `https://pkgs.dev.azure.com/org/_packaging/MCP/nuget/v3/index.json` |
-| `NUGET_FEED_USERNAME` | Feed username or PAT | `user@domain.com` |
-| `NUGET_FEED_PASSWORD` | Feed password or PAT token | `*** (your token)` |
-| `NUGET_FEED_API_KEY` | Feed API key | `oy2...` (if required) |
-
-### Custom Feed Options
-
-**Azure Artifacts** (Recommended for Azure users)
-```
-URL: https://pkgs.dev.azure.com/{org}/_packaging/{feed}/nuget/v3/index.json
-Auth: Personal Access Token (PAT)
-```
-
-**GitHub Packages**
-```
-URL: https://nuget.pkg.github.com/{owner}/index.json
-Auth: GitHub token
-```
-
-**On-Premises (ProGet, Artifactory, etc.)**
-```
-URL: https://your-server.com/nuget/v3/index.json
-Auth: API key or credentials
-```
-
-**Private MyGet Feed**
-```
-URL: https://www.myget.org/F/{feed}/auth/{apikey}/api/v3/index.json
-```
+No CI/CD setup needed - GitHub just validates!
 
 ## Troubleshooting
 

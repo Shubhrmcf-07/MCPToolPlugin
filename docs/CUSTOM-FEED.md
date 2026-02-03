@@ -1,6 +1,8 @@
 # Custom NuGet Feed Setup
 
-This guide covers setting up a private NuGet feed for publishing and consuming MCP tools internally.
+This guide covers setting up a private NuGet feed for consuming MCP tools internally.
+
+**Important:** All publishing credentials are kept locally or in private infrastructure - never stored in the public GitHub repository.
 
 ## Quick Overview
 
@@ -11,69 +13,40 @@ Instead of publishing to public NuGet.org:
 
 ## Feed Options
 
-### 1. Azure Artifacts (Recommended for Azure users)
-
-**Pros:**
-- Integrated with Azure DevOps
-- Simple feed management
-- Role-based access control
-- Retention policies
+### 1. Azure Artifacts
 
 **Setup:**
 
-1. Create an Azure DevOps project
-2. Go to Artifacts → Create Feed
-3. Name it (e.g., `mcp-tools`)
-4. Get connection details:
+1. Create Azure DevOps project
+2. Go to Artifacts → Create Feed (name: `mcp-tools`)
+3. Get feed URL: `https://pkgs.dev.azure.com/{org}/_packaging/mcp-tools/nuget/v3/index.json`
+4. Create PAT (User Settings → Personal Access Tokens, scope: `Packaging read & write`)
+5. Add locally (never in GitHub):
+   ```bash
+   dotnet nuget add source \
+     --name AzureArtifacts \
+     --username your-email \
+     --password YOUR_PAT \
+     https://pkgs.dev.azure.com/{org}/_packaging/mcp-tools/nuget/v3/index.json
    ```
-   Organization: your-org
-   Project: your-project
-   Feed: mcp-tools
-   ```
-
-5. In GitHub, add secrets:
-   - `NUGET_FEED_URL`: `https://pkgs.dev.azure.com/{org}/_packaging/mcp-tools/nuget/v3/index.json`
-   - `NUGET_FEED_USERNAME`: Your email
-   - `NUGET_FEED_PASSWORD`: Personal Access Token (PAT)
-
-6. Create PAT in Azure DevOps (User Settings → Personal Access Tokens):
-   - Scope: `Packaging (read & write)`
-   - Expiration: 1 year+
 
 ### 2. GitHub Packages
 
-**Pros:**
-- No extra service needed
-- Uses GitHub authentication
-- Good for GitHub-centric teams
-
 **Setup:**
 
-1. In your repository, go to Settings → Secrets → Actions
-2. Add `NUGET_FEED_URL`: `https://nuget.pkg.github.com/{owner}/index.json`
-3. Add `NUGET_FEED_PASSWORD`: Your GitHub token with `write:packages` scope
-4. Workflow automatically publishes to GitHub Packages
+1. Create GitHub Personal Access Token (Settings → Developer settings → Tokens, scope: `write:packages`)
+2. Add locally (never in GitHub):
+   ```bash
+   dotnet nuget add source \
+     --name GitHubPackages \
+     --username your-username \
+     --password YOUR_GITHUB_TOKEN \
+     https://nuget.pkg.github.com/your-org/index.json
+   ```
 
-**Using in projects:**
-```bash
-dotnet nuget add source \
-  --name GitHubPackages \
-  --username your-username \
-  --password your-github-token \
-  https://nuget.pkg.github.com/your-org/index.json
+### 3. On-Premises: ProGet, Artifactory, BaGet
 
-dotnet add package MCPServer.YourTool --source GitHubPackages
-```
-
-### 3. On-Premises Server
-
-**Options:**
-- **ProGet** - Advanced NuGet server
-- **Artifactory** - JFrog's universal repository
-- **BaGet** - Open-source NuGet server
-- **MyGet** - Hosted private feeds
-
-**Generic Setup:**
+Add locally with your credentials:
 
 ```bash
 # Add feed
@@ -106,18 +79,19 @@ Feed URL: `http://localhost:5555/v3/index.json`
 
 ## Workflow Integration
 
-The `.github/workflows/build.yml` automatically:
+GitHub Actions automatically:
 
-1. **Builds** all projects
+1. **Builds** all projects on every push/PR
 2. **Tests** all packages
 3. **Packs** tools as NuGet packages
-4. **Publishes** to your custom feed (on merge to main)
+4. **Uploads** packages as artifacts (downloadable from Actions tab)
 
-**Required Secrets** (GitHub Settings → Secrets):
-- `NUGET_FEED_URL` - Your feed endpoint
-- `NUGET_FEED_USERNAME` - Feed user (usually email)
-- `NUGET_FEED_PASSWORD` - Feed password/token
-- `NUGET_FEED_API_KEY` - API key (if required by your feed)
+To publish:
+- Download artifacts from GitHub Actions
+- Run locally: `dotnet nuget push` with your credentials
+- See [PUBLISH-LOCALLY.md](PUBLISH-LOCALLY.md) for details
+
+**No credentials stored in GitHub!**
 
 ## Local Development
 

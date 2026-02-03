@@ -1,4 +1,4 @@
-name: Build and Publish Tools
+name: Build and Test Tools
 
 on:
   push:
@@ -27,7 +27,7 @@ jobs:
     - name: Run tests
       run: dotnet test --configuration Release --no-build --verbosity normal
     
-    - name: Pack Tool Packages
+    - name: Pack NuGet packages
       run: dotnet pack --configuration Release --no-build --output ./packages
     
     - name: Upload packages
@@ -35,41 +35,6 @@ jobs:
       with:
         name: nuget-packages
         path: packages/
-
-  publish-tools:
-    runs-on: ubuntu-latest
-    needs: build-and-test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: '8.0.x'
-    
-    - name: Download packages
-      uses: actions/download-artifact@v4
-      with:
-        name: nuget-packages
-        path: ./packages
-    
-    - name: Configure custom NuGet feed
-      run: |
-        dotnet nuget add source \
-          --name CustomFeed \
-          --username ${{ secrets.NUGET_FEED_USERNAME }} \
-          --password ${{ secrets.NUGET_FEED_PASSWORD }} \
-          --store-password-in-clear-text \
-          ${{ secrets.NUGET_FEED_URL }}
-    
-    - name: Publish to custom feed
-      run: |
-        dotnet nuget push "./packages/*.nupkg" \
-          --api-key ${{ secrets.NUGET_FEED_API_KEY }} \
-          --source CustomFeed \
-          --skip-duplicate || true
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
       run: |
         echo "Would push to container registry here"
