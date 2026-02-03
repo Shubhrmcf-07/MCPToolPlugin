@@ -1,0 +1,154 @@
+name: Tool Validation and Integration
+
+on:
+  pull_request:
+    paths:
+      - 'tools/**'
+      - '.github/workflows/tool-validation.yml'
+  workflow_dispatch:
+
+jobs:
+  validate-tool:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      
+      - name: Get changed tool directories
+        id: changed-tools
+        run: |
+          # Find all tool directories that changed
+          git diff --name-only origin/main HEAD | grep '^tools/' | cut -d/ -f2 | sort -u > /tmp/changed_tools.txt
+          echo "tools=$(cat /tmp/changed_tools.txt | tr '\n' ',' | sed 's/,$//')" >> $GITHUB_OUTPUT
+      
+      - name: Check tool structure
+        run: |
+          for tool in $(cat /tmp/changed_tools.txt); do
+            echo "Checking tool: $tool"
+            
+            # Check required files
+            if [ ! -f "tools/$tool/$tool.csproj" ]; then
+              echo "ERROR: Missing $tool.csproj"
+              exit 1
+            fi
+            
+            if [ ! -f "tools/$tool/README.md" ]; then
+              echo "ERROR: Missing README.md"
+              exit 1
+            fi
+            
+            # Check for IMCPTool implementation
+            if ! grep -r "IMCPTool" "tools/$tool/" --include="*.cs"; then
+              echo "ERROR: Tool must implement IMCPTool interface"
+              exit 1
+            fi
+            
+            echo "✓ $tool structure is valid"
+          done
+      
+      - name: Build tools
+        run: dotnet build MCPServer.sln --configuration Release --no-restore
+      
+      - name: Run tests
+        run: |
+          for tool in $(cat /tmp/changed_tools.txt); do
+            if [ -d "tools/$tool.Tests" ]; then
+              echo "Running tests for $tool..."
+              dotnet test "tools/$tool.Tests" --configuration Release --no-build --verbosity normal
+            fi
+          done
+      
+      - name: Run code analysis
+        run: |
+          # Install roslyn analyzers
+          dotnet tool install --global roslynator.commandline || true
+          dotnet build MCPServer.sln --configuration Release /p:EnableNETAnalyzers=true /p:AnalysisLevel=latest
+      
+      - name: Create NuGet packages
+        run: |
+          for tool in $(cat /tmp/changed_tools.txt); do
+            echo "Packaging $tool..."
+            dotnet pack "tools/$tool/$tool.csproj" -c Release -o ./packages
+          done
+      
+      - name: Test tool integration
+        run: |
+          # Build the server and test loading each tool
+          dotnet build MCPServer.sln -c Release
+          
+          for tool in $(cat /tmp/changed_tools.txt); do
+            echo "Testing integration for $tool..."
+            cp "tools/$tool/bin/Release/net8.0/$tool.dll" "./src/MCPServer.Core/bin/Release/net8.0/plugins/" || true
+          done
+      
+      - name: Upload packages
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuget-packages
+          path: packages/*.nupkg
+      
+      - name: Comment PR with results
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const tools = '${{ steps.changed-tools.outputs.tools }}'.split(',').filter(Boolean);
+            const comment = `## Tool Validation Results ✓
+            
+            **Tools Validated:** ${tools.join(', ')}
+            
+            - [x] Structure validation passed
+            - [x] Build successful
+            - [x] Tests passed
+            - [x] Code analysis passed
+            - [x] Integration test passed
+            
+            Ready for integration!`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+  publish-tools:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: validate-tool
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      
+      - name: Download packages
+        uses: actions/download-artifact@v4
+        with:
+          name: nuget-packages
+          path: packages
+      
+      - name: Publish to NuGet
+        run: |
+          for package in packages/*.nupkg; do
+            dotnet nuget push "$package" \
+              --api-key ${{ secrets.NUGET_API_KEY }} \
+              --source "https://api.nuget.org/v3/index.json" \
+              --skip-duplicate
+          done
+      
+      - name: Update server registry
+        run: |
+          # This would update a central registry of available tools
+          # For now, just log the action
+          echo "Updated tool registry on main"

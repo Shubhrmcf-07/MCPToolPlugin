@@ -1,0 +1,16 @@
+.vs/
+bin/
+obj/
+packages/
+.DS_Store
+*.user
+*.suo
+*.sln.docstates
+.vscode/
+logs/
+*.log
+plugins/
+!plugins/.gitkeep
+.env
+.env.local
+appsettings.Development.json
