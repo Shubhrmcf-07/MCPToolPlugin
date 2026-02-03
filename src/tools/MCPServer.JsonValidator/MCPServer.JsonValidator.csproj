@@ -3,6 +3,7 @@
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <IsPackable>true</IsPackable>
+    <Nullable>enable</Nullable>
     <Version>1.0.0</Version>
     <Title>JSON Validator Tool</Title>
     <Description>JSON validation and formatting tool for MCP</Description>
