@@ -1,30 +1,15 @@
-# MCP Server - .NET Model Context Protocol
+# MCP Tools - Open Contribution Platform
 
-A lightweight Model Context Protocol (MCP) server built in .NET with plugin architecture for tool integration.
+Create and share tools for the Model Context Protocol (MCP). This repository contains the template and examples for building tools that integrate with MCP servers.
 
 ## Quick Start
 
-### Build
+### Build Tools
 ```bash
 dotnet build
 ```
 
-### Run
-```bash
-dotnet run --project src/MCPServer.Core
-```
-
-Server runs on `http://localhost:5000`
-
-## API Endpoints
-
-- `GET /health` - Health check
-- `GET /api/tools` - List all tools
-- `GET /api/tools/{toolId}` - Get tool details
-- `GET /api/tools/{toolId}/functions` - List tool functions
-- `POST /api/tools/{toolId}/execute` - Execute a tool function
-
-## Create a Tool
+### Create Your Tool
 
 See [TOOL_TEMPLATE.md](docs/TOOL_TEMPLATE.md) for complete guide.
 
@@ -42,21 +27,48 @@ public class MyTool : IMCPTool {
 
 ```
 ├── src/
-│   ├── MCPServer.Core/          # Main server app
 │   ├── MCPServer.ToolTemplate/  # Tool interfaces & base classes
-│   └── MCPServer.Examples/      # Example tools
+│   └── MCPServer.Examples/      # Example tool implementations
 ├── docs/                         # Documentation
-├── .github/workflows/            # CI/CD pipelines
-└── Dockerfile                    # Container support
+└── .github/workflows/            # CI/CD - builds and publishes tools
 ```
+
+## Workflow: Contribute a Tool
+
+1. **Fork** this repository
+2. **Create** a new tool in `src/MCPServer.YourToolName/`
+3. **Follow** the [TOOL_TEMPLATE.md](docs/TOOL_TEMPLATE.md) guide
+4. **Submit** a PR with your tool
+5. **CI validates** the tool (builds, tests, structure)
+6. **Merge** -> Tool published to NuGet
+7. **MCP servers** install your tool via NuGet
+
+## Example: TextProcessingTool
+
+Located in `src/MCPServer.Examples/`, implements:
+- Count words and characters
+- Convert case (upper/lower)
+- Reverse text
+- Remove whitespace
 
 ## Documentation
 
 - [API Documentation](docs/API.md)
-- [Tool Template Guide](docs/TOOL_TEMPLATE.md)
-- [Architecture](docs/ARCHITECTURE.md)
-- [Contributing](docs/CONTRIBUTING.md)
-- [Deployment](docs/DEPLOYMENT.md)
+- [Tool Template Guide](docs/TOOL_TEMPLATE.md)  
+- [Tool Architecture](docs/ARCHITECTURE.md)
+- [Contributing Guidelines](docs/CONTRIBUTING.md)
+
+## How Tools Get Published
+
+1. **Build & Test** - GitHub Actions validates all PRs
+2. **Auto-Pack** - NuGet packages created automatically
+3. **Publish** - Tools published to NuGet.org on merge
+4. **Distribution** - MCP servers pull tools from NuGet
+
+Example: Your tool becomes available as:
+```bash
+dotnet add package MCPServer.YourToolName
+```
 
 ## Get Tool Details
 ```bash
