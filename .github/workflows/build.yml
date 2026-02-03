@@ -30,11 +30,9 @@ jobs:
     - name: Pack NuGet packages
       run: dotnet pack --configuration Release --no-build --output ./packages
     
-    - name: Upload packages
+    - name: Upload packages as artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: nuget-packages
+        name: nuget-packages-${{ github.run_number }}
         path: packages/
-      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-      run: |
-        echo "Would push to container registry here"
+        retention-days: 30
