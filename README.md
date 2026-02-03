@@ -316,7 +316,7 @@ This project is licensed under the MIT License - see LICENSE file for details.
 ## Acknowledgments
 
 Built with:
-- .NET 8.0
+- .NET 8.0 
 - ASP.NET Core
 - Serilog
 - Microsoft.Extensions.DependencyInjection
