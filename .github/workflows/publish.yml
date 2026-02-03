@@ -1,0 +1,93 @@
+name: Publish Tools to NuGet Feed
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish (e.g., 1.0.0)'
+        required: true
+        type: string
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build
+      run: dotnet build --configuration Release --no-restore
+
+    - name: Find all tools
+      id: find-tools
+      run: |
+        tools=$(find src -maxdepth 1 -type d -name "MCPServer.*" ! -name "MCPServer.ToolTemplate" | sed 's|src/||' | tr '\n' ',' | sed 's/,$//')
+        echo "tools=$tools" >> $GITHUB_OUTPUT
+        echo "Found tools: $tools"
+
+    - name: Pack tools
+      run: dotnet pack --configuration Release --no-build --output ./packages
+
+    - name: Configure Azure Artifacts feed
+      run: |
+        dotnet nuget add source \
+          --name AzureArtifacts \
+          --username ${{ secrets.AZURE_ARTIFACTS_USERNAME }} \
+          --password ${{ secrets.AZURE_ARTIFACTS_PASSWORD }} \
+          --store-password-in-clear-text \
+          ${{ secrets.AZURE_ARTIFACTS_FEED_URL }}
+
+    - name: Publish to Azure Artifacts
+      run: |
+        dotnet nuget push "./packages/*.nupkg" \
+          --api-key AzureArtifacts \
+          --source AzureArtifacts \
+          --skip-duplicate
+
+    - name: Create release notes
+      id: release-notes
+      run: |
+        tools="${{ steps.find-tools.outputs.tools }}"
+        echo "tools_list<<EOF" >> $GITHUB_OUTPUT
+        echo "Published Tools (v${{ github.event.inputs.version }}):" >> $GITHUB_OUTPUT
+        echo "$tools" | tr ',' '\n' | sed 's/^/- /' >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v${{ github.event.inputs.version }}
+        body: ${{ steps.release-notes.outputs.tools_list }}
+        files: ./packages/*.nupkg
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Notify MCP Server (webhook)
+      run: |
+        curl -X POST \
+          -H "Content-Type: application/json" \
+          -d "{\"event\":\"tools_published\",\"version\":\"${{ github.event.inputs.version }}\",\"tools\":\"${{ steps.find-tools.outputs.tools }}\"}" \
+          ${{ secrets.MCP_SERVER_WEBHOOK_URL }} \
+          || echo "Webhook URL not configured (skipping)"
+      continue-on-error: true
+
+    - name: Summary
+      run: |
+        echo "## ✓ Publish Complete"
+        echo "Version: ${{ github.event.inputs.version }}"
+        echo "Tools: ${{ steps.find-tools.outputs.tools }}"
+        echo ""
+        echo "### Next Steps"
+        echo "1. Check Azure Artifacts feed for new packages"
+        echo "2. MCP Server webhook notified (if configured)"
+        echo "3. Release created on GitHub"
