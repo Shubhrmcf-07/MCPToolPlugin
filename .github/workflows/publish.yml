@@ -33,7 +33,7 @@ jobs:
     - name: Find all tools
       id: find-tools
       run: |
-        tools=$(find src -maxdepth 1 -type d -name "MCPServer.*" ! -name "MCPServer.ToolTemplate" | sed 's|src/||' | tr '\n' ',' | sed 's/,$//')
+        tools=$(find src/tools -maxdepth 1 -type d -name "MCPServer.*" ! -name "MCPServer.ToolTemplate" | sed 's|src/tools/||' | tr '\n' ',' | sed 's/,$//')
         echo "tools=$tools" >> $GITHUB_OUTPUT
         echo "Found tools: $tools"
 
