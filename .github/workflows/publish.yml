@@ -58,6 +58,10 @@ jobs:
             --skip-duplicate
         done
 
+    - name: Notify MCP Server to refresh plugins
+      run: |
+        curl -X POST https://mcp-server-biztalk-test.azurewebsites.net/api/webhooks/refresh-plugins
+
     - name: Upload packages as artifacts
       uses: actions/upload-artifact@v4
       with:
