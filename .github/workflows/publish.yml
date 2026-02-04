@@ -1,0 +1,98 @@
+name: Publish Tools - Pack Only
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to publish (e.g., 1.0.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  packages: read
+
+jobs:
+  pack-tools:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build
+      run: dotnet build --configuration Release --no-restore
+
+    - name: Find all tools
+      id: find-tools
+      run: |
+        tools=$(find src/tools -maxdepth 1 -type d -name "MCPServer.*" ! -name "MCPServer.ToolTemplate" | sed 's|src/tools/||' | tr '\n' ',' | sed 's/,$//')
+        echo "tools=$tools" >> $GITHUB_OUTPUT
+        echo "Found tools: $tools"
+
+    - name: Pack NuGet packages
+      run: dotnet pack --configuration Release --no-build --output ./packages
+
+    - name: Configure NuGet Source
+      run: |
+        dotnet nuget add source ${{ secrets.NUGET_FEED_URL }} \
+          --name PrivateFeed \
+          --username az \
+          --password ${{ secrets.NUGET_FEED_PAT }} \
+          --store-password-in-clear-text
+
+    - name: Push to Private NuGet Feed
+      run: |
+        for package in ./packages/*.nupkg; do
+          echo "Pushing $package to private feed..."
+          dotnet nuget push "$package" \
+            --source PrivateFeed \
+            --api-key az \
+            --skip-duplicate
+        done
+
+    - name: Notify MCP Server to refresh plugins
+      run: |
+        curl -X POST https://mcp-server-biztalk-test.azurewebsites.net/api/webhooks/refresh-plugins
+
+    - name: Upload packages as artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: nuget-packages-v${{ github.event.inputs.version }}
+        path: packages/
+        retention-days: 90
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v${{ github.event.inputs.version }}
+        body: |
+          ## Tools Published v${{ github.event.inputs.version }}
+          
+          **Tools:**
+          ${{ steps.find-tools.outputs.tools }}
+          
+          **Packages:** Published to private NuGet feed
+        files: ./packages/*.nupkg
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Publish Summary
+      run: |
+        echo "## ✓ Tools Published Successfully"
+        echo ""
+        echo "**Version:** ${{ github.event.inputs.version }}"
+        echo "**Tools:** ${{ steps.find-tools.outputs.tools }}"
+        echo ""
+        echo "**Published to:** Private NuGet Feed"
+        echo "**GitHub Release:** Created with artifacts"
+
