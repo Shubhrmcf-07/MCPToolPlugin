@@ -7,10 +7,22 @@ This template helps developers create new tools for the MCP (Model Context Proto
 ### 1. Create a new tool class library project
 
 ```bash
-dotnet new classlib -n "MyCustomTool"
-cd MyCustomTool
-dotnet add reference ../MCPServer.ToolTemplate/MCPServer.ToolTemplate.csproj
+# Create in the tools directory following the naming pattern
+mkdir src/tools/MCPServer.YourToolName
+cd src/tools/MCPServer.YourToolName
+
+# Create a class library project
+dotnet new classlib -n "MCPServer.YourToolName" --force
+
+# Add reference to the template
+dotnet add reference ../../MCPServer.ToolTemplate/MCPServer.ToolTemplate.csproj
 ```
+
+Or manually:
+1. Create folder: `src/tools/MCPServer.YourToolName/`
+2. Create `.csproj` file (see structure below)
+3. Add reference to `MCPServer.ToolTemplate`
+4. Add to solution: `dotnet sln add src/tools/MCPServer.YourToolName/MCPServer.YourToolName.csproj`
 
 ### 2. Implement the `IMCPTool` interface
 
